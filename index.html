@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#080B10" />
+
+  <title>BiliScan — Jaundice Screening Aid</title>
+  <meta name="description" content="Non-diagnostic scleral jaundice screening tool using on-device computer vision." />
+
+  <!-- Favicon inline SVG -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 36 36'><rect width='36' height='36' rx='8' fill='%23080B10'/><ellipse cx='18' cy='18' rx='14' ry='10' stroke='%2300D4AA' stroke-width='2' fill='none'/><circle cx='18' cy='18' r='5' fill='%2300D4AA' opacity='0.9'/><circle cx='18' cy='18' r='2.5' fill='%23080B10'/></svg>" />
+
+  <!-- Google Font: DM Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- React + ReactDOM (production UMD) -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+
+  <!-- Babel standalone (transpiles JSX in-browser) -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      background: #080B10;
+      font-family: 'DM Sans', 'Segoe UI', system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      overscroll-behavior: none;
+    }
+
+    #root {
+      min-height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Native scrollbar styling */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #1C2738; border-radius: 4px; }
+
+    /* Prevent tap highlight on mobile */
+    * { -webkit-tap-highlight-color: transparent; }
+
+    /* Loading spinner shown before React mounts */
+    #loading {
+      position: fixed;
+      inset: 0;
+      background: #080B10;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      z-index: 9999;
+      transition: opacity 0.4s ease;
+    }
+    #loading.hidden { opacity: 0; pointer-events: none; }
+    #loading-ring {
+      width: 48px; height: 48px;
+      border-radius: 50%;
+      border: 3px solid #1C2738;
+      border-top-color: #00D4AA;
+      animation: spin 0.8s linear infinite;
+    }
+    #loading-text {
+      font-size: 13px;
+      color: #60748A;
+      letter-spacing: 0.08em;
+      font-family: 'DM Sans', sans-serif;
+    }
+    #loading-logo {
+      font-size: 22px;
+      font-weight: 800;
+      color: #ffffff;
+      letter-spacing: -0.02em;
+    }
+    #loading-logo span { color: #00D4AA; }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Error banner */
+    #error-banner {
+      display: none;
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1C0A0E;
+      border: 1px solid #E8455A66;
+      border-radius: 12px;
+      padding: 12px 20px;
+      color: #E8455A;
+      font-size: 13px;
+      max-width: 360px;
+      width: 90%;
+      text-align: center;
+      z-index: 9998;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Loading screen (visible until React renders) -->
+  <div id="loading">
+    <div id="loading-logo">Bili<span>Scan</span></div>
+    <div id="loading-ring"></div>
+    <div id="loading-text">LOADING</div>
+  </div>
+
+  <!-- Error fallback banner -->
+  <div id="error-banner"></div>
+
+  <!-- React mount point -->
+  <div id="root"></div>
+
+  <!--
+    ┌─────────────────────────────────────────────────────────────┐
+    │  BiliScan.jsx loaded as a Babel-transpiled inline module.   │
+    │  Babel converts JSX + ES module syntax to browser JS.       │
+    │  The default export is mounted onto #root via ReactDOM.     │
+    └─────────────────────────────────────────────────────────────┘
+  -->
+  <script type="text/babel" data-type="module" data-presets="react" src="BiliScan.jsx"
+    onerror="showError('Failed to load BiliScan.jsx. Make sure it is in the same folder as index.html.')">
+  </script>
+
+  <script type="text/babel" data-presets="react">
+    // ── Mount shim ──────────────────────────────────────────────────────────
+    // Babel processes BiliScan.jsx as a module but UMD React doesn't use
+    // ES module exports, so we re-expose the default export and mount here.
+
+    function showError(msg) {
+      const el = document.getElementById('error-banner');
+      el.textContent = msg;
+      el.style.display = 'block';
+      document.getElementById('loading')?.classList.add('hidden');
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      // Hide the loading overlay once the first render fires
+      const observer = new MutationObserver(() => {
+        if (document.getElementById('root').children.length > 0) {
+          const loading = document.getElementById('loading');
+          if (loading) loading.classList.add('hidden');
+          setTimeout(() => loading?.remove(), 500);
+          observer.disconnect();
+        }
+      });
+      observer.observe(document.getElementById('root'), { childList: true, subtree: true });
+    });
+  </script>
+
+  <!--
+    ── ALTERNATIVE: Vite / CRA / bundler users ──────────────────────────────
+    If you are serving this via a bundler (Vite, webpack, Parcel), delete the
+    Babel <script> tags above and replace this comment with:
+
+      <script type="module">
+        import { createRoot } from 'react-dom/client';
+        import App from './BiliScan.jsx';
+        createRoot(document.getElementById('root')).render(<App />);
+      </script>
+
+    Then also remove the React / ReactDOM CDN <script> tags in the <head>
+    and install React as a package dependency instead:
+
+        npm install react react-dom
+  -->
+
+</body>
+</html>
